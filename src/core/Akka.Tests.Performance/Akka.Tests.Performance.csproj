@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <AssemblyTitle>Akka.Tests.Performance</AssemblyTitle>
-    <TargetFrameworks>net452</TargetFrameworks>
+    <TargetFrameworks>net452;netcoreapp1.1</TargetFrameworks>
     <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
 
@@ -13,8 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NBench" Version="0.3.4" />
-    <PackageReference Include="NBench.PerformanceCounters" Version="0.3.4" />
+    <PackageReference Include="NBench" Version="1.0.1" />
+    <!--<PackageReference Include="NBench.PerformanceCounters" Version="1.0.1" />-->
+    <DotNetCliToolReference Include="NBench.Runner.DotNetCli" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">

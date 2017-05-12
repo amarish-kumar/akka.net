@@ -10,6 +10,8 @@ NUGET_EXE=$TOOLS_DIR/nuget.exe
 NUGET_URL=https://dist.nuget.org/win-x86-commandline/v4.0.0/nuget.exe
 FAKE_VERSION=4.50.0
 FAKE_EXE=$TOOLS_DIR/FAKE/tools/FAKE.exe
+NBENCH_VERSION=1.0.1
+NBENCH_EXE=$TOOLS_DIR/NBench.Runner/lib/net45/NBench.Runner.exe
 DOTNET_VERSION=1.0.0
 DOTNET_INSTALLER_URL=https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0/scripts/obtain/dotnet-install.sh
 
@@ -83,6 +85,24 @@ fi
 # Make sure that Fake has been installed.
 if [ ! -f "$FAKE_EXE" ]; then
     echo "Could not find Fake.exe at '$FAKE_EXE'."
+    exit 1
+fi
+
+###########################################################################
+# INSTALL NBench.Runner
+###########################################################################
+
+if [ ! -f "$NBENCH_EXE" ]; then
+    mono "$NUGET_EXE" install NBench.Runner -ExcludeVersion -Version $NBENCH_VERSION -OutputDirectory "$TOOLS_DIR"
+    if [ $? -ne 0 ]; then
+        echo "An error occured while installing Cake."
+        exit 1
+    fi
+fi
+
+# Make sure that Fake has been installed.
+if [ ! -f "$NBENCH_EXE" ]; then
+    echo "Could not find Fake.exe at '$NBENCH_EXE'."
     exit 1
 fi
 
