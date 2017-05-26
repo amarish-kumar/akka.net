@@ -1,28 +1,30 @@
-﻿//-----------------------------------------------------------------------
-// <copyright file="TestRunShutdownSpec.cs" company="Akka.NET Project">
-//     Copyright (C) 2009-2016 Lightbend Inc. <http://www.lightbend.com>
-//     Copyright (C) 2013-2016 Akka.NET project <https://github.com/akkadotnet/akka.net>
-// </copyright>
-//-----------------------------------------------------------------------
-
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Akka.Actor;
+using Akka.MultiNodeTestRunner.Shared.Reporting;
 using Akka.MultiNodeTestRunner.Shared.Sinks;
 using Akka.TestKit;
 using Xunit;
+using Xunit.Abstractions;
 
-namespace Akka.MultiNodeTestRunner.Shared.Tests
+namespace Akka.MultiNodeTestRunner.Shared.Tests.Output
 {
-    /// <summary>
-    /// Used to validate that we can get final reporting on shutdown
-    /// </summary>
-    public class TestRunShutdownSpec : AkkaSpec
+    public class ConsoleMessageSinkFormattingSpec : AkkaSpec
     {
+        private readonly ITestOutputHelper _output;
+
+        public ConsoleMessageSinkFormattingSpec(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         [Fact]
         public void TestCoordinatorEnabledMessageSink_should_receive_TestRunTree_when_EndTestRun_is_received()
         {
-            var consoleMessageSink = Sys.ActorOf(Props.Create(() => new ConsoleMessageSinkActor(true, false)));
+            var consoleMessageSink = Sys.ActorOf(Props.Create(() => new TestOutputHelperMessageSinkActor(true, true, _output)));
             var nodeIndexes = Enumerable.Range(1, 4).ToArray();
             var nodeTests = NodeMessageHelpers.BuildNodeTests(nodeIndexes);
 
@@ -48,8 +50,21 @@ namespace Akka.MultiNodeTestRunner.Shared.Tests
                 consoleMessageSink.AskAndWait<MessageSinkActor.SinkCanBeTerminated>(new EndTestRun(),
                     TimeSpan.FromSeconds(10));
             Assert.NotNull(sinkReadyToTerminate);
+        }
 
+        private class TestOutputHelperMessageSinkActor : ConsoleMessageSinkActor
+        {
+            private readonly ITestOutputHelper _output;
+            public TestOutputHelperMessageSinkActor(bool useTestCoordinator, bool teamCity, ITestOutputHelper output) : base(useTestCoordinator, teamCity)
+            {
+                _output = output;
+            }
+
+            protected override void WriteSpecMessage(string message, string teamCityWrapper)
+            {
+                string specMessage = $"[RUNNER][{DateTime.UtcNow.ToShortTimeString()}]: {message}";
+                _output.WriteLine(WrapWithTeamCityTag(specMessage, teamCityWrapper));
+            }
         }
     }
 }
-

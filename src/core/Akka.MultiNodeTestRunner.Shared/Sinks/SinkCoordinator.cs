@@ -89,7 +89,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
         /// Leave the console message sink enabled by default
         /// </summary>
         public SinkCoordinator()
-            : this(new[] { new ConsoleMessageSink() })
+            : this(new[] { new ConsoleMessageSink(false) })
         {
 
         }
