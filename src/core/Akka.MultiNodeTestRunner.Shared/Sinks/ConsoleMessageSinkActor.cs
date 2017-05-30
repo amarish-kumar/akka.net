@@ -47,8 +47,12 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             WriteSpecMessage($"Start time: {new DateTime(data.StartTime, DateTimeKind.Utc)}");
             foreach (var node in data.NodeFacts)
             {
+                var teamCityWrapper = _teamCity
+                    ? $@"##teamcity[{(node.Value.Passed.GetValueOrDefault(false) ? "testPassed" : "testFailed")}]"
+                    : String.Empty;
+
                 WriteSpecMessage(
-                    $" --> Node {node.Value.NodeIndex}:{node.Value.NodeRole} : {(node.Value.Passed.GetValueOrDefault(false) ? "PASS" : "FAIL")} [{node.Value.Elapsed} elapsed]");
+                    $" --> Node {node.Value.NodeIndex}:{node.Value.NodeRole} : {(node.Value.Passed.GetValueOrDefault(false) ? "PASS" : "FAIL")} [{node.Value.Elapsed} elapsed]", teamCityWrapper);
             }
             WriteSpecMessage(
                 $"End time: {new DateTime(data.EndTime.GetValueOrDefault(DateTime.UtcNow.Ticks), DateTimeKind.Utc)}");
@@ -106,6 +110,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             var teamCityWrapper = _teamCity
                 ? $@"##teamcity[testStarted name='{newSpec.ClassName}.{newSpec.MethodName}']{Environment.NewLine}"
                 : String.Empty;
+
             WriteSpecMessage($@"Beginning spec {newSpec.ClassName}.{newSpec.MethodName} on {newSpec.Nodes.Count} nodes", teamCityWrapper);
 
             base.HandleNewSpec(newSpec);

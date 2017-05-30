@@ -22,7 +22,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Tests.Output
         }
 
         [Fact]
-        public void TestCoordinatorEnabledMessageSink_should_receive_TestRunTree_when_EndTestRun_is_received()
+        public void ConsoleMessageSink_exploratory_tests()
         {
             var consoleMessageSink = Sys.ActorOf(Props.Create(() => new TestOutputHelperMessageSinkActor(true, true, _output)));
             var nodeIndexes = Enumerable.Range(1, 4).ToArray();
