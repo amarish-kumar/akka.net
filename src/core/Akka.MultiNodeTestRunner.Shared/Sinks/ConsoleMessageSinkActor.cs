@@ -23,7 +23,6 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
     public class ConsoleMessageSinkActor : TestCoordinatorEnabledMessageSink
     {
         private readonly bool _teamCity;
-        private readonly TeamCityTagGenerator _teamCityTagGenerator = new TeamCityTagGenerator();
         public ConsoleMessageSinkActor(bool useTestCoordinator, bool teamCity) : base(useTestCoordinator)
         {
             _teamCity = teamCity;
@@ -52,7 +51,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
                     : String.Empty;
 
                 WriteSpecMessage(
-                    $" --> Node {node.Value.NodeIndex}:{node.Value.NodeRole} : {(node.Value.Passed.GetValueOrDefault(false) ? "PASS" : "FAIL")} [{node.Value.Elapsed} elapsed]", teamCityWrapper);
+                    $" --> Node {node.Value.NodeIndex}:{node.Value.NodeRole} : {(node.Value.Passed.GetValueOrDefault(false) ? "PASS" : "FAIL")} [{node.Value.Elapsed} elapsed]");
             }
             WriteSpecMessage(
                 $"End time: {new DateTime(data.EndTime.GetValueOrDefault(DateTime.UtcNow.Ticks), DateTimeKind.Utc)}");
@@ -151,18 +150,11 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
         /// <summary>
         /// Used to print a spec status message (spec starting, finishing, failed, etc...)
         /// </summary>
-        protected virtual void WriteSpecMessage(string message, string teamCityWrapper = null)
+        protected virtual void WriteSpecMessage(string message)
         {
             string specMessage = $"[RUNNER][{DateTime.UtcNow.ToShortTimeString()}]: {message}";
             Console.ForegroundColor = ConsoleColor.DarkYellow;
-            if (_teamCity && teamCityWrapper != null)
-            {
-                Console.WriteLine(WrapWithTeamCityTag(specMessage, teamCityWrapper));
-            }
-            else
-            {
-                Console.WriteLine(specMessage);
-            }
+            Console.WriteLine(specMessage);
             Console.ResetColor();
         }
 
@@ -219,38 +211,39 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             return color;
         }
 
-        private enum TeamCityTag
-        {   
-            TestSuiteStarted,
-            TestStarted,
-            TestSuiteFinished,
-            TestFinished,
-            TestFailed,
-            TestPassed
-        }
+        //TODO: remove this
+        //private enum TeamCityTag
+        //{   
+        //    TestSuiteStarted,
+        //    TestStarted,
+        //    TestSuiteFinished,
+        //    TestFinished,
+        //    TestFailed,
+        //    TestPassed
+        //}
 
-        private class TeamCityTagGenerator
-        {
-            private readonly Dictionary<TeamCityTag, string> _tagMapping = 
-                new Dictionary<TeamCityTag, string>();
+        //private class TeamCityTagGenerator
+        //{
+        //    private readonly Dictionary<TeamCityTag, string> _tagMapping = 
+        //        new Dictionary<TeamCityTag, string>();
 
-            public TeamCityTagGenerator()
-            {
-                _tagMapping.Add(TeamCityTag.TestSuiteStarted, "testSuiteStarted");
-                _tagMapping.Add(TeamCityTag.TestStarted, "testStarted");
-                _tagMapping.Add(TeamCityTag.TestSuiteFinished, "testSuiteFinished");
-                _tagMapping.Add(TeamCityTag.TestFinished, "testFinished");
-                _tagMapping.Add(TeamCityTag.TestFailed, "testFailed");
-                _tagMapping.Add(TeamCityTag.TestPassed, "testPassed");
-            }
+        //    public TeamCityTagGenerator()
+        //    {
+        //        _tagMapping.Add(TeamCityTag.TestSuiteStarted, "testSuiteStarted");
+        //        _tagMapping.Add(TeamCityTag.TestStarted, "testStarted");
+        //        _tagMapping.Add(TeamCityTag.TestSuiteFinished, "testSuiteFinished");
+        //        _tagMapping.Add(TeamCityTag.TestFinished, "testFinished");
+        //        _tagMapping.Add(TeamCityTag.TestFailed, "testFailed");
+        //        _tagMapping.Add(TeamCityTag.TestPassed, "testPassed");
+        //    }
 
-            private string GenerateTeamCityTag(TeamCityTag tag)
-            {
-                string stringTag;
-                if (_tagMapping.TryGetValue(tag, out stringTag)) { return stringTag; }
-                throw new KeyNotFoundException();
-            }
-        }
+        //    private string GenerateTeamCityTag(TeamCityTag tag)
+        //    {
+        //        string stringTag;
+        //        if (_tagMapping.TryGetValue(tag, out stringTag)) { return stringTag; }
+        //        throw new KeyNotFoundException();
+        //    }
+        //}
 
         private static string EscapeForTeamCity(string input)
         {
