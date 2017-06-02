@@ -104,7 +104,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             var specMessage = $"Beginning spec {newSpec.ClassName}.{newSpec.MethodName} on {newSpec.Nodes.Count} nodes";
             if (_teamCity)
             {
-                WriteSpecMessage($"##teamcity[testSuiteStarted name=\'{TeamCityEscape(newSpec.ClassName)}.{TeamCityEscape(newSpec.MethodName)}]");
+                WriteSpecMessage($"##teamcity[testSuiteStarted name=\'{TeamCityEscape(newSpec.ClassName)}.{TeamCityEscape(newSpec.MethodName)}\']");
                 //WriteSpecMessage($"[RUNNER][{DateTime.UtcNow.ToShortTimeString()}]: {specMessage}"); //TODO: not sure if necessary
             }
             else
