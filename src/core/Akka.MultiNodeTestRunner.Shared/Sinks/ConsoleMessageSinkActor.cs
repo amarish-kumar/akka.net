@@ -101,13 +101,15 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
 
         protected override void HandleNewSpec(BeginNewSpec newSpec)
         {
+            var specMessage = $"Beginning spec {newSpec.ClassName}.{newSpec.MethodName} on {newSpec.Nodes.Count} nodes";
             if (_teamCity)
             {
-                WriteSpecMessage($"[RUNNER][{DateTime.UtcNow.ToShortTimeString()}]: Beginning spec {newSpec.ClassName}.{newSpec.MethodName} on {newSpec.Nodes.Count} nodes");
+                WriteSpecMessage($"##teamcity[testSuiteStarted name=\'{TeamCityEscape(newSpec.ClassName)}.{TeamCityEscape(newSpec.MethodName)}]");
+                //WriteSpecMessage($"[RUNNER][{DateTime.UtcNow.ToShortTimeString()}]: {specMessage}"); //TODO: not sure if necessary
             }
             else
             {
-                WriteSpecMessage($"Beginning spec {newSpec.ClassName}.{newSpec.MethodName} on {newSpec.Nodes.Count} nodes");
+                WriteSpecMessage(specMessage);
             }
 
             base.HandleNewSpec(newSpec);
@@ -115,8 +117,16 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
 
         protected override void HandleEndSpec(EndSpec endSpec)
         {
-            WriteSpecMessage("Spec completed.");
+            if (_teamCity)
+            {
+                //WriteSpecMessage($"##teamcity[testFinished name=\'{TeamCityEscape()}"); //TODO: EndSpec message will need class name MessageSink.cs (228,42) MessageSinkActorRef.Tell(new EndSpec());
 
+            }
+            else
+            {
+                WriteSpecMessage("Spec completed.");
+            }
+            
             base.HandleEndSpec(endSpec);
         }
 
