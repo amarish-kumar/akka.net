@@ -120,7 +120,6 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             if (_teamCity)
             {
                 //WriteSpecMessage($"##teamcity[testFinished name=\'{TeamCityEscape()}"); //TODO: EndSpec message will need class name MessageSink.cs (228,42) MessageSinkActorRef.Tell(new EndSpec());
-
             }
             else
             {
