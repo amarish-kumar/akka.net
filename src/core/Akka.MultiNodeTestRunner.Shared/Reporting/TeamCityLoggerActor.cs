@@ -13,7 +13,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Reporting
         {
             ReceiveAny(o =>
             {
-                Console.WriteLine(o.ToString() + Environment.NewLine);
+                Console.WriteLine(o.ToString());
             });
         }
     }
