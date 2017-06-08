@@ -198,8 +198,14 @@ namespace Akka.MultiNodeTestRunner
                                     ReportSpecPassFromExitCode(nodeIndex, nodeRole, closureTest.TestName);
                                     if (TeamCityFormattingOn)
                                     {
-                                        TeamCityLogger.Tell($"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(closureTest.TestName) + " passed"}");
+                                        TeamCityLogger.Tell(
+                                            $"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(closureTest.TestName) + " passed"}");
                                     }
+                                }
+                                else
+                                {
+                                    TeamCityLogger.Tell(
+                                        $"##teamcity[testFailed name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(closureTest.TestName) + " failed"}");
                                 }
                             };
 
