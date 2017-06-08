@@ -107,7 +107,7 @@ namespace Akka.MultiNodeTestRunner
 
             var teamCityFormattingOn = CommandLine.GetProperty("multinode.teamcity") ?? "false";
             SinkCoordinator = TestRunSystem.ActorOf(Boolean.TryParse(teamCityFormattingOn, out TeamCityFormattingOn) ?
-                Props.Create<SinkCoordinator>(TeamCityFormattingOn) :
+                Props.Create(() => new SinkCoordinator(new [] { new TeamCityMessageSink() })) :
                 Props.Create<SinkCoordinator>(), "sinkCoordinator");
 
             var listenAddress = IPAddress.Parse(CommandLine.GetPropertyOrDefault("multinode.listen-address", "127.0.0.1"));
@@ -199,7 +199,7 @@ namespace Akka.MultiNodeTestRunner
 
                         PublishRunnerMessage("Waiting 3 seconds for all messages from all processes to be collected.");
                         Thread.Sleep(TimeSpan.FromSeconds(3));
-                        FinishSpec();
+                        FinishSpec(test.Value);
                     }
                 }
             }
@@ -271,9 +271,10 @@ namespace Akka.MultiNodeTestRunner
             SinkCoordinator.Tell(new NodeCompletedSpecWithSuccess(nodeIndex, nodeRole, testName + " passed."));
         }
 
-        static void FinishSpec()
+        static void FinishSpec(IList<NodeTest> tests)
         {
-           SinkCoordinator.Tell(new EndSpec());
+           var spec = tests.First();
+           SinkCoordinator.Tell(new EndSpec(spec.TestName, spec.MethodName));
         }
 
         static void PublishRunnerMessage(string message)
