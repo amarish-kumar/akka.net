@@ -39,7 +39,8 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
     {
         public EndSpec()
         {
-            
+            ClassName = null;
+            MethodName = null;
         }
 
         public EndSpec(string className, string methodName)

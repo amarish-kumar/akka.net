@@ -104,7 +104,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             var specMessage = $"Beginning spec {newSpec.ClassName}.{newSpec.MethodName} on {newSpec.Nodes.Count} nodes";
             if (_teamCity)
             {
-                WriteSpecMessage($"##teamcity[testSuiteStarted name=\'{TeamCityEscape(newSpec.ClassName)}.{TeamCityEscape(newSpec.MethodName)}\']");
+                WriteSpecMessage($"##teamcity[testSuiteStarted name=\'{TeamCityEscape($"{newSpec.ClassName}.{newSpec.MethodName}")}\']");
                 //WriteSpecMessage($"[RUNNER][{DateTime.UtcNow.ToShortTimeString()}]: {specMessage}"); //TODO: not sure if necessary
             }
             else
@@ -119,7 +119,15 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
         {
             if (_teamCity)
             {
-                //WriteSpecMessage($"##teamcity[testFinished name=\'{TeamCityEscape()}"); //TODO: EndSpec message will need class name MessageSink.cs (228,42) MessageSinkActorRef.Tell(new EndSpec());
+                if (endSpec.ClassName != null && endSpec.MethodName != null)
+                {
+                    WriteSpecMessage(
+                        $"##teamcity[testFinished name=\'{TeamCityEscape($"{endSpec.ClassName}.{endSpec.MethodName}")}\']");
+                }
+                else
+                {
+                    throw new ArgumentNullException(nameof(endSpec), "EndSpec message must have non-null ClassName and MethodName");
+                }
             }
             else
             {

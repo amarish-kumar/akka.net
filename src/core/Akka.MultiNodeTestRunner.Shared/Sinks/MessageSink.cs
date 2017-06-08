@@ -225,7 +225,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
         public void EndTest(string className, string methodName)
         {
             //end the current spec
-            MessageSinkActorRef.Tell(new EndSpec());
+            MessageSinkActorRef.Tell(new EndSpec(className, methodName));
         }
         
         public void Success(int nodeIndex, string nodeRole, string message)
