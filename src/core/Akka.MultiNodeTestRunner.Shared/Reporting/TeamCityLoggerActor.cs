@@ -9,11 +9,17 @@ namespace Akka.MultiNodeTestRunner.Shared.Reporting
 {
     public class TeamCityLoggerActor : ReceiveActor
     {
-        public TeamCityLoggerActor()
+        private readonly bool _unMuted = false;
+        public TeamCityLoggerActor(bool unMuted)
         {
+            _unMuted = unMuted;
+            
             ReceiveAny(o =>
             {
-                Console.WriteLine(o.ToString());
+                if (_unMuted)
+                {
+                    Console.WriteLine(o.ToString());
+                }
             });
         }
     }
