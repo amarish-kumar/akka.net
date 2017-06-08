@@ -186,7 +186,8 @@ namespace Akka.MultiNodeTestRunner
                                     fileActor.Tell(eventArgs.Data);
                                     if (TeamCityFormattingOn)
                                     {
-                                        TeamCityLogger.Tell($"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(eventArgs.Data)}");
+                                        TeamCityLogger.Tell($"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message=\'{TeamCityEscape(eventArgs.Data)}\']");
+                                        TeamCityLogger.Tell(eventArgs.Data);
                                     }
                                 }
                             };
@@ -199,13 +200,13 @@ namespace Akka.MultiNodeTestRunner
                                     if (TeamCityFormattingOn)
                                     {
                                         TeamCityLogger.Tell(
-                                            $"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(closureTest.TestName) + " passed"}");
+                                            $"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message=\'{TeamCityEscape(closureTest.TestName) + " passed"}\']");
                                     }
                                 }
                                 else
                                 {
                                     TeamCityLogger.Tell(
-                                        $"##teamcity[testFailed name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(closureTest.TestName) + " failed"}");
+                                        $"##teamcity[testFailed name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message=\'{TeamCityEscape(closureTest.TestName) + " failed"}\']");
                                 }
                             };
 
