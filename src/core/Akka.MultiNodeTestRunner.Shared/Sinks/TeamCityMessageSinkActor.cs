@@ -19,47 +19,11 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
 
         protected override void AdditionalReceives()
         {
-            Receive<FactData>(data => ReceiveFactData(data));
         }
 
         protected override void ReceiveFactData(FactData data)
         {
-            PrintSpecRunResults(data);
-        }
 
-        private void PrintSpecRunResults(FactData data)
-        {
-            WriteSpecMessage($"Results for {data.FactName}");
-            WriteSpecMessage($"Start time: {new DateTime(data.StartTime, DateTimeKind.Utc)}");
-            foreach (var node in data.NodeFacts)
-            {
-                WriteSpecMessage(
-                    $" --> Node {node.Value.NodeIndex}:{node.Value.NodeRole} : {(node.Value.Passed.GetValueOrDefault(false) ? "PASS" : "FAIL")} [{node.Value.Elapsed} elapsed]");
-            }
-            WriteSpecMessage(
-                $"End time: {new DateTime(data.EndTime.GetValueOrDefault(DateTime.UtcNow.Ticks), DateTimeKind.Utc)}");
-            WriteSpecMessage(
-                $"FINAL RESULT: {(data.Passed.GetValueOrDefault(false) ? "PASS" : "FAIL")} after {data.Elapsed}.");
-
-            //If we had a failure
-            if (data.Passed.GetValueOrDefault(false) == false)
-            {
-                WriteSpecMessage("Failure messages by Node");
-                foreach (var node in data.NodeFacts)
-                {
-                    if (node.Value.Passed.GetValueOrDefault(false) == false)
-                    {
-                        WriteSpecMessage($"<----------- BEGIN NODE {node.Key}:{node.Value.NodeRole} ----------->");
-                        foreach (var resultMessage in node.Value.ResultMessages)
-                        {
-                            WriteSpecMessage($" --> {resultMessage.Message}");
-                        }
-                        if (node.Value.ResultMessages == null || node.Value.ResultMessages.Count == 0)
-                            WriteSpecMessage("[received no messages - SILENT FAILURE].");
-                        WriteSpecMessage($"<----------- END NODE {node.Key}:{node.Value.NodeRole} ----------->");
-                    }
-                }
-            }
         }
 
         protected override void HandleNodeSpecFail(NodeCompletedSpecWithFail nodeFail)
@@ -81,15 +45,11 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             var passedSpecs = tree.Specs.Count(x => x.Passed.GetValueOrDefault(false));
             WriteSpecMessage(
                 $"Test run completed in [{tree.Elapsed}] with {passedSpecs}/{tree.Specs.Count()} specs passed.");
-            foreach (var factData in tree.Specs)
-            {
-                PrintSpecRunResults(factData);
-            }
         }
 
         protected override void HandleNewSpec(BeginNewSpec newSpec)
         {
-            WriteSpecMessage($"##teamcity[testSuiteStarted name=\'{TeamCityEscape($"{newSpec.ClassName}.{newSpec.MethodName}")}\']");
+            WriteSpecMessage($"##teamcity[testStarted name=\'{TeamCityEscape($"{newSpec.ClassName}.{newSpec.MethodName}")}\' flowId=\'{TeamCityEscape($"{newSpec.ClassName}.{newSpec.MethodName}")}\' captureStandardOutput=\'true\']");
 
             base.HandleNewSpec(newSpec);
         }
@@ -99,7 +59,7 @@ namespace Akka.MultiNodeTestRunner.Shared.Sinks
             if (endSpec.ClassName != null && endSpec.MethodName != null)
             {
                 WriteSpecMessage(
-                    $"##teamcity[testFinished name=\'{TeamCityEscape($"{endSpec.ClassName}.{endSpec.MethodName}")}\']");
+                    $"##teamcity[testFinished name=\'{TeamCityEscape($"{endSpec.ClassName}.{endSpec.MethodName}")}\' flowId=\'{TeamCityEscape($"{endSpec.ClassName}.{endSpec.MethodName}")}\']");
             }
             else
             {

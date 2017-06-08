@@ -19,6 +19,7 @@ using Akka.Event;
 using Akka.IO;
 using Akka.MultiNodeTestRunner.Shared;
 using Akka.MultiNodeTestRunner.Shared.Persistence;
+using Akka.MultiNodeTestRunner.Shared.Reporting;
 using Akka.MultiNodeTestRunner.Shared.Sinks;
 using Akka.Remote.TestKit;
 using Xunit;
@@ -33,6 +34,8 @@ namespace Akka.MultiNodeTestRunner
         protected static ActorSystem TestRunSystem;
 
         protected static IActorRef SinkCoordinator;
+
+        protected static IActorRef TeamCityLogger;
 
         /// <summary>
         /// file output directory
@@ -102,12 +105,12 @@ namespace Akka.MultiNodeTestRunner
         /// </summary>
         static void Main(string[] args)
         {
-            OutputDirectory = CommandLine.GetProperty("multinode.output-directory") ?? string.Empty;           
+            OutputDirectory = CommandLine.GetProperty("multinode.output-directory") ?? string.Empty;
             TestRunSystem = ActorSystem.Create("TestRunnerLogging");
 
             var teamCityFormattingOn = CommandLine.GetProperty("multinode.teamcity") ?? "false";
             SinkCoordinator = TestRunSystem.ActorOf(Boolean.TryParse(teamCityFormattingOn, out TeamCityFormattingOn) ?
-                Props.Create(() => new SinkCoordinator(new [] { new TeamCityMessageSink() })) :
+                Props.Create(() => new SinkCoordinator(new List<MessageSink>())) : // mutes ConsoleMessageSinkActor
                 Props.Create<SinkCoordinator>(), "sinkCoordinator");
 
             var listenAddress = IPAddress.Parse(CommandLine.GetPropertyOrDefault("multinode.listen-address", "127.0.0.1"));
@@ -122,6 +125,12 @@ namespace Akka.MultiNodeTestRunner
             EnableAllSinks(assemblyName);
             PublishRunnerMessage(String.Format("Running MultiNodeTests for {0}", assemblyName));
 
+            if (TeamCityFormattingOn)
+            {
+                TeamCityLogger = TestRunSystem.ActorOf(Props.Create<TeamCityLoggerActor>());
+                TeamCityLogger.Tell($"##teamcity[testSuiteStarted name=\'{TeamCityEscape(assemblyName)}\' flowId=\'{TeamCityEscape(assemblyName)}\']");
+            }
+
             using (var controller = new XunitFrontController(AppDomainSupport.IfAvailable, assemblyName))
             {
                 using (var discovery = new Discovery())
@@ -129,7 +138,7 @@ namespace Akka.MultiNodeTestRunner
                     controller.Find(false, discovery, TestFrameworkOptions.ForDiscovery());
                     discovery.Finished.WaitOne();
 
-                    foreach(var test in discovery.Tests.Reverse())
+                    foreach (var test in discovery.Tests.Reverse())
                     {
                         if (!string.IsNullOrEmpty(test.Value.First().SkipReason))
                         {
@@ -137,12 +146,11 @@ namespace Akka.MultiNodeTestRunner
                             continue;
                         }
 
-                        if(!string.IsNullOrWhiteSpace(specName) && CultureInfo.InvariantCulture.CompareInfo.IndexOf(test.Value.First().TestName, specName, CompareOptions.IgnoreCase) < 0)
+                        if (!string.IsNullOrWhiteSpace(specName) && CultureInfo.InvariantCulture.CompareInfo.IndexOf(test.Value.First().TestName, specName, CompareOptions.IgnoreCase) < 0)
                         {
                             PublishRunnerMessage($"Skipping [{test.Value.First().MethodName}] (Filtering)");
                             continue;
                         }
-                            
 
                         PublishRunnerMessage(string.Format("Starting test {0}", test.Value.First().MethodName));
 
@@ -173,8 +181,14 @@ namespace Akka.MultiNodeTestRunner
                                 TestRunSystem.ActorOf(Props.Create(() => new FileSystemAppenderActor(logFilePath)));
                             process.OutputDataReceived += (sender, eventArgs) =>
                             {
-                                if(eventArgs?.Data != null)
+                                if (eventArgs?.Data != null)
+                                {
                                     fileActor.Tell(eventArgs.Data);
+                                    if (TeamCityFormattingOn)
+                                    {
+                                        TeamCityLogger.Tell($"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(eventArgs.Data)}");
+                                    }
+                                }
                             };
                             var closureTest = nodeTest;
                             process.Exited += (sender, eventArgs) =>
@@ -182,9 +196,13 @@ namespace Akka.MultiNodeTestRunner
                                 if (process.ExitCode == 0)
                                 {
                                     ReportSpecPassFromExitCode(nodeIndex, nodeRole, closureTest.TestName);
+                                    if (TeamCityFormattingOn)
+                                    {
+                                        TeamCityLogger.Tell($"##teamcity[testStdOut name=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' flowId=\'{TeamCityEscape($"{nodeTest.TestName}.{nodeTest.MethodName}")}\' message={TeamCityEscape(closureTest.TestName) + " passed"}");
+                                    }
                                 }
                             };
-                            
+
                             process.Start();
                             process.BeginOutputReadLine();
                             PublishRunnerMessage(string.Format("Started node {0} : {1} on pid {2}", nodeIndex, nodeRole, process.Id));
@@ -204,10 +222,16 @@ namespace Akka.MultiNodeTestRunner
                 }
             }
             Console.WriteLine("Complete");
+            if (TeamCityFormattingOn)
+            {
+                TeamCityLogger = TestRunSystem.ActorOf(Props.Create<TeamCityLoggerActor>());
+                TeamCityLogger.Tell($"##teamcity[testSuiteFinished name=\'{TeamCityEscape(assemblyName)}\' flowId=\'{TeamCityEscape(assemblyName)}\']");
+            }
+
             PublishRunnerMessage("Waiting 5 seconds for all messages from all processes to be collected.");
             Thread.Sleep(TimeSpan.FromSeconds(5));
             CloseAllSinks();
-            
+
             //Block until all Sinks have been terminated.
             TestRunSystem.WhenTerminated.Wait(TimeSpan.FromMinutes(1));
 
@@ -264,6 +288,11 @@ namespace Akka.MultiNodeTestRunner
         static void StartNewSpec(IList<NodeTest> tests)
         {
             SinkCoordinator.Tell(tests);
+            if (TeamCityFormattingOn)
+            {
+                var spec = tests.First();
+                TeamCityLogger.Tell($"##teamcity[testStarted name=\'{TeamCityEscape($"{spec.TestName}.{spec.MethodName}")}\' flowId=\'{TeamCityEscape($"{spec.TestName}.{spec.MethodName}")}\'");
+            }
         }
 
         static void ReportSpecPassFromExitCode(int nodeIndex, string nodeRole, string testName)
@@ -273,8 +302,12 @@ namespace Akka.MultiNodeTestRunner
 
         static void FinishSpec(IList<NodeTest> tests)
         {
-           var spec = tests.First();
-           SinkCoordinator.Tell(new EndSpec(spec.TestName, spec.MethodName));
+            var spec = tests.First();
+            SinkCoordinator.Tell(new EndSpec(spec.TestName, spec.MethodName));
+            if (TeamCityFormattingOn)
+            {
+                TeamCityLogger.Tell($"##teamcity[testFinished name=\'{TeamCityEscape($"{spec.TestName}.{spec.MethodName}")}\' flowId=\'{TeamCityEscape($"{spec.TestName}.{spec.MethodName}")}\'");
+            }
         }
 
         static void PublishRunnerMessage(string message)
@@ -285,6 +318,22 @@ namespace Akka.MultiNodeTestRunner
         static void PublishToAllSinks(string message)
         {
             SinkCoordinator.Tell(message, ActorRefs.NoSender);
+        }
+
+        private static string TeamCityEscape(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            return input.Replace("|", "||")
+                .Replace("'", "|'")
+                .Replace("\n", "|n")
+                .Replace("\r", "|r")
+                .Replace(char.ConvertFromUtf32(int.Parse("0086", NumberStyles.HexNumber)), "|x")
+                .Replace(char.ConvertFromUtf32(int.Parse("2028", NumberStyles.HexNumber)), "|l")
+                .Replace(char.ConvertFromUtf32(int.Parse("2029", NumberStyles.HexNumber)), "|p")
+                .Replace("[", "|[")
+                .Replace("]", "|]");
         }
     }
 
