@@ -16,6 +16,7 @@ using Akka.Actor;
 using Akka.TestKit;
 using DotNetty.Transport.Channels;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Akka.Remote.TestKit.Tests
 {
@@ -28,7 +29,7 @@ namespace Akka.Remote.TestKit.Tests
             akka.actor.debug.lifecycle = on
         ";
 
-        public RemoteConnectionSpecs() : base(Config)
+        public RemoteConnectionSpecs(ITestOutputHelper output) : base(Config, output)
         {
             
         }
