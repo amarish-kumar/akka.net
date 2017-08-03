@@ -106,23 +106,21 @@ open BuildIncremental.IncrementalTests
 
 Target "RunTests" (fun _ ->    
     ActivateFinalTarget "KillCreatedProcesses"
-    //let projects =
-    //    match getBuildParamOrDefault "incremental" "" with
-    //    | "true" -> log "The following test projects would be run under Incremental Test config..."
-    //                getIncrementalUnitTests() |> Seq.map (fun x -> printfn "\t%s" x; x)
-    //    | "experimental" -> log "The following test projects would be run under Incremental Test config..."
-    //                        getIncrementalUnitTests() |> Seq.iter log
-    //                        getUnitTestProjects()
-    //    | _ -> log "All test projects will be run..."
-    //           getUnitTestProjects()
+    let projects =
+        match getBuildParamOrDefault "incremental" "" with
+        | "true" -> log "The following test projects would be run under Incremental Test config..."
+                    getIncrementalUnitTests() |> Seq.map (fun x -> printfn "\t%s" x; x)
+        | "experimental" -> log "The following test projects would be run under Incremental Test config..."
+                            getIncrementalUnitTests() |> Seq.iter log
+                            getUnitTestProjects()
+        | _ -> log "All test projects will be run..."
+               getUnitTestProjects()
     
-    let projects = !! "./src/**/Akka.Remote.TestKit.Tests.csproj"
-
     let runSingleProject project =
         let result = ExecProcess(fun info ->
             info.FileName <- "dotnet"
             info.WorkingDirectory <- (Directory.GetParent project).FullName
-            info.Arguments <- (sprintf "xunit -f net452 -c Release -parallel none -xml %s_xunit.xml" (outputTests @@ fileNameWithoutExt project))) (TimeSpan.FromMinutes 30.)
+            info.Arguments <- (sprintf "xunit -f net452 -c Release -nobuild -parallel none -teamcity -xml %s_xunit.xml" (outputTests @@ fileNameWithoutExt project))) (TimeSpan.FromMinutes 30.)
         
         ResultHandling.failBuildIfXUnitReportedError TestRunnerErrorLevel.DontFailBuild result
 
@@ -154,48 +152,6 @@ Target "RunTestsNetCore" (fun _ ->
     CreateDir outputTests
     projects |> Seq.iter (runSingleProject)
 )
-
-Target "MultiNodeTestsNetCore" (fun _ ->
-    ActivateFinalTarget "KillCreatedProcesses"
-    let multiNodeTestPath = findToolInSubPath "Akka.MultiNodeTestRunner.dll" (currentDirectory @@ "src" @@ "core" @@ "Akka.MultiNodeTestRunner" @@ "bin" @@ "Release" @@ "netcoreapp1.1")
-
-    let multiNodeTestAssemblies = 
-        match getBuildParamOrDefault "incremental" "" with
-        | "true" -> log "The following test projects would be run under Incremental Test config..."
-                    getIncrementalNetCoreMNTRTests() |> Seq.map (fun x -> printfn "\t%s" x; x)
-        | "experimental" -> log "The following MNTR specs would be run under Incremental Test config..."
-                            getIncrementalNetCoreMNTRTests() |> Seq.iter log
-                            getAllMntrTestNetCoreAssemblies()
-        | _ -> log "All test projects will be run"
-               getAllMntrTestNetCoreAssemblies()
-
-    printfn "Using MultiNodeTestRunner: %s" multiNodeTestPath
-
-    let runMultiNodeSpec assembly =
-        match assembly with
-        | null -> ()
-        | _ ->
-            let spec = getBuildParam "spec"
-
-            let args = StringBuilder()
-                    |> append multiNodeTestPath
-                    |> append assembly
-                    |> append "-Dmultinode.teamcity=true"
-                    |> append "-Dmultinode.enable-filesink=on"
-                    |> append (sprintf "-Dmultinode.output-directory=\"%s\"" outputMultiNode)
-                    |> append "-Dmultinode.platform=netcore"
-                    |> appendIfNotNullOrEmpty spec "-Dmultinode.spec="
-                    |> toText
-
-            let result = ExecProcess(fun info -> 
-                info.FileName <- "dotnet"
-                info.WorkingDirectory <- (Path.GetDirectoryName (FullName multiNodeTestPath))
-                info.Arguments <- args) (System.TimeSpan.FromMinutes 60.0) (* This is a VERY long running task. *)
-            if result <> 0 then failwithf "MultiNodeTestRunner failed. %s %s" multiNodeTestPath args
-    
-    multiNodeTestAssemblies |> Seq.iter (runMultiNodeSpec)
-)
-
 
 Target "MultiNodeTests" (fun _ ->
     ActivateFinalTarget "KillCreatedProcesses"
