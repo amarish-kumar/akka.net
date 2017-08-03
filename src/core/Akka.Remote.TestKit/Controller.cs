@@ -432,6 +432,7 @@ namespace Akka.Remote.TestKit
             catch (Exception ex)
             {
                 _log.Error(ex, "Error while terminating RemoteConnection.");
+                throw;
             }
         }
     }
