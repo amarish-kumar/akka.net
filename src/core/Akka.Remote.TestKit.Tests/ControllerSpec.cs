@@ -47,7 +47,6 @@ namespace Akka.Remote.TestKit.Tests
                 c.Tell(PoisonPill.Instance);
                 ExpectMsg<Terminated>();
             }, TimeSpan.FromSeconds(20));
-
         }
     }
 }
